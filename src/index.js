@@ -1,6 +1,7 @@
 import * as THREE from 'three';
+import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
 
-let scene, camera, renderer, box;
+let scene, camera, renderer, controls, box;
 
 function init() {
     scene = new THREE.Scene();
@@ -36,6 +37,27 @@ function init() {
     ground.rotation.x = -Math.PI / 2;
     ground.receiveShadow = true;
     scene.add(ground);
+
+    controls = new PointerLockControls(camera, renderer.domElement);
+    document.body.addEventListener('click', () => controls.lock());
+    document.body.addEventListener('keydown', ev => {
+        switch (ev.code) {
+            case 'ArrowUp':
+                controls.moveForward(0.2);
+                break;
+            case 'ArrowLeft':
+                controls.moveRight(-0.2);
+                break;
+            case 'ArrowDown':
+                controls.moveForward(-0.2);
+                break;
+            case 'ArrowRight':
+                controls.moveRight(0.2);
+            default:
+                console.log(ev.code + ' was pushed');
+        }
+    });
+    scene.add(controls.getObject());
 
     const geometry = new THREE.BoxGeometry();
     const material = new THREE.MeshStandardMaterial({ color: 0xaaaaaa });
