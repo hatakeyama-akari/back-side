@@ -1,32 +1,15 @@
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+
+import { loadAssets } from './lib/assetManager.js';
+
+import assets from './assets.js';
 
 let scene, camera, renderer, controls, box;
+const debug = true;
 
 function init() {
     scene = new THREE.Scene();
-
-    // Background textures（Cube）
-    const cubeTextureLoader = new THREE.CubeTextureLoader();
-    cubeTextureLoader.setPath('../assets/skyboxsun/');
-
-    const textureCube = cubeTextureLoader.load([
-        'px.jpg',
-        'nx.jpg',
-        'py.jpg',
-        'ny.jpg',
-        'pz.jpg',
-        'nz.jpg',
-    ]);
-    textureCube.encoding = THREE.sRGBEncoding;
-    scene.background = textureCube;
-
-    // // Background Textures（Equirectangular）
-    // const textureLoader = new THREE.TextureLoader();
-    // textureEquirec = textureLoader.load(''); // 正距円筒図法の画像データをロード
-    // textureEquirec.mapping = THREE.EquirectangularReflectionMapping;
-    // textureEquirec.encoding = THREE.sRGBEncoding;
 
     camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 10000);
     camera.position.set(3, 4, 9);
@@ -75,57 +58,31 @@ function init() {
     });
     scene.add(controls.getObject());
 
-    const loader = new GLTFLoader();
-    loader.load(
-        // Blenderでdefaultのcubeをそのままglbでexport
-        // '../assets/test_box_original.glb',
+    loadAssets(
+        'assets/',
+        assets,
+        () => {
+            scene.background = assets['cubic_env'];
 
-        // lightとcameraをglbに入れず、cubeのみexport（_originalと表示変わらず）
-        // '../assets/test_box_onlycube.glb',
-
-        // materialでBase colorを青にした
-        // '../assets/test_box_onlycube_blue.glb',
-
-        // material無しでexport
-        '../assets/test_box_no_material.glb',
-
-        // 光沢materialでexport
-        // '../assets/test_box_glossy.glb',
-
-        gltf => {
-            console.log(gltf);
-            console.log(gltf.scene.children[0]);
-
-            gltf.scene.children[0].material = new THREE.MeshLambertMaterial({
+            box = assets['box_model'].scene.getObjectByName('Cube');
+            box.material = new THREE.MeshLambertMaterial({
                 color: 0x777777,
-                envMap: textureCube,
+                envMap: assets['cubic_env'],
             });
+            scene.add(box);
 
-            // // textureを読み込んでmapping
-            // // const texLoader = new THREE.TextureLoader();
-            // // const boxTexture = texLoader.load('../assets/box_texture_blue.png');
-            // // gltf.scene.children[0].material = new THREE.MeshStandardMaterial({
-            // //     map: boxTexture,
-            // // });
-            scene.add(gltf.scene);
+            document.body.appendChild(renderer.domElement);
+            renderer.setAnimationLoop(animate);
         },
-        xhr => {
-            console.log((xhr.loaded / xhr.total) * 100 + '% loaded');
-        },
-        error => {
-            console.log('An error happened', error);
-        }
+        debug
     );
 
-    document.body.appendChild(renderer.domElement);
-
     window.addEventListener('resize', onResize, false);
-
-    animate();
 }
 
 function animate() {
     renderer.setAnimationLoop(animate);
+    box.rotation.y += 0.02;
     renderer.render(scene, camera);
 }
 
