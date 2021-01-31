@@ -1,42 +1,45 @@
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 let scene, camera, renderer, controls, box;
 
 function init() {
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xa0a0a0);
-    scene.fog = new THREE.Fog(0xa0a0a0, 8, 18);
 
-    camera = new THREE.PerspectiveCamera(30, window.innerWidth / window.innerHeight, 1.0, 100.0);
-    camera.position.set(1, 3, 8);
-    camera.lookAt(0, 1, 0);
+    // Background textures（Cube）
+    const cubeTextureLoader = new THREE.CubeTextureLoader();
+    cubeTextureLoader.setPath('../assets/skyboxsun/');
+
+    const textureCube = cubeTextureLoader.load([
+        'px.jpg',
+        'nx.jpg',
+        'py.jpg',
+        'ny.jpg',
+        'pz.jpg',
+        'nz.jpg',
+    ]);
+    textureCube.encoding = THREE.sRGBEncoding;
+    scene.background = textureCube;
+
+    // // Background Textures（Equirectangular）
+    // const textureLoader = new THREE.TextureLoader();
+    // textureEquirec = textureLoader.load(''); // 正距円筒図法の画像データをロード
+    // textureEquirec.mapping = THREE.EquirectangularReflectionMapping;
+    // textureEquirec.encoding = THREE.sRGBEncoding;
+
+    camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 10000);
+    camera.position.set(3, 4, 9);
+    camera.lookAt(0, 0, 0);
 
     renderer = new THREE.WebGLRenderer();
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.shadowMap.enabled = true;
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    renderer.setPixelRatio(window.devicePixelRatio);
 
-    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x333333);
-    hemiLight.position.set(0, 30, 0);
-    scene.add(hemiLight);
-
-    const dirLight = new THREE.DirectionalLight();
-    dirLight.position.set(5, 5, 5);
-    dirLight.castShadow = true;
-    dirLight.shadow.camera.top = 2;
-    dirLight.shadow.camera.bottom = -2;
-    dirLight.shadow.camera.left = -2;
-    dirLight.shadow.camera.right = 2;
-    dirLight.shadow.camera.near = 0.1;
-    dirLight.shadow.camera.far = 40;
-    scene.add(dirLight);
-
-    const groundGeometry = new THREE.PlaneGeometry(100, 100);
-    const groundMaterial = new THREE.MeshStandardMaterial();
-    const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-    ground.rotation.x = -Math.PI / 2;
-    ground.receiveShadow = true;
-    scene.add(ground);
+    const ambient = new THREE.AmbientLight(0xffffff);
+    scene.add(ambient);
 
     controls = new PointerLockControls(camera, renderer.domElement);
     document.body.addEventListener('click', () => controls.lock());
@@ -53,18 +56,66 @@ function init() {
                 break;
             case 'ArrowRight':
                 controls.moveRight(0.2);
+                break;
+            case 'KeyW':
+                controls.moveForward(0.2);
+                break;
+            case 'KeyA':
+                controls.moveRight(-0.2);
+                break;
+            case 'KeyS':
+                controls.moveForward(-0.2);
+                break;
+            case 'KeyD':
+                controls.moveRight(0.2);
+                break;
             default:
                 console.log(ev.code + ' was pushed');
         }
     });
     scene.add(controls.getObject());
 
-    const geometry = new THREE.BoxGeometry();
-    const material = new THREE.MeshStandardMaterial({ color: 0xaaaaaa });
-    box = new THREE.Mesh(geometry, material);
-    box.castShadow = true;
-    box.position.set(0, 1, 0);
-    scene.add(box);
+    const loader = new GLTFLoader();
+    loader.load(
+        // Blenderでdefaultのcubeをそのままglbでexport
+        // '../assets/test_box_original.glb',
+
+        // lightとcameraをglbに入れず、cubeのみexport（_originalと表示変わらず）
+        // '../assets/test_box_onlycube.glb',
+
+        // materialでBase colorを青にした
+        // '../assets/test_box_onlycube_blue.glb',
+
+        // material無しでexport
+        '../assets/test_box_no_material.glb',
+
+        // 光沢materialでexport
+        // '../assets/test_box_glossy.glb',
+
+        gltf => {
+            console.log(gltf);
+            console.log(gltf.scene.children[0]);
+
+            gltf.scene.children[0].material = new THREE.MeshLambertMaterial({
+                color: 0x777777,
+                envMap: textureCube,
+            });
+
+            // // textureを読み込んでmapping
+            // // const texLoader = new THREE.TextureLoader();
+            // // const boxTexture = texLoader.load('../assets/box_texture_blue.png');
+            // // gltf.scene.children[0].material = new THREE.MeshStandardMaterial({
+            // //     map: boxTexture,
+            // // });
+            scene.add(gltf.scene);
+        },
+        xhr => {
+            console.log((xhr.loaded / xhr.total) * 100 + '% loaded');
+        },
+        error => {
+            console.log('An error happened', error);
+        }
+    );
 
     document.body.appendChild(renderer.domElement);
 
@@ -75,7 +126,6 @@ function init() {
 
 function animate() {
     renderer.setAnimationLoop(animate);
-    box.rotation.y += 0.02;
     renderer.render(scene, camera);
 }
 
