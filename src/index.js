@@ -5,15 +5,15 @@ import { loadAssets } from './lib/assetManager.js';
 
 import assets from './assets.js';
 
-let scene, camera, renderer, controls, box;
+let scene, camera, renderer, controls, box, backRoom;
 const debug = true;
 
 function init() {
     scene = new THREE.Scene();
 
-    camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 10000);
-    camera.position.set(3, 4, 9);
-    camera.lookAt(0, 0, 0);
+    camera = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.set(10, 20, 3);
+    camera.lookAt(25, 17, 13);
 
     renderer = new THREE.WebGLRenderer();
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -21,8 +21,9 @@ function init() {
     renderer.outputEncoding = THREE.sRGBEncoding;
     renderer.setPixelRatio(window.devicePixelRatio);
 
-    const ambient = new THREE.AmbientLight(0xffffff);
-    scene.add(ambient);
+    const pointLight = new THREE.PointLight();
+    pointLight.position.set(20, 25, 12);
+    scene.add(pointLight);
 
     controls = new PointerLockControls(camera, renderer.domElement);
     document.body.addEventListener('click', () => controls.lock());
@@ -62,12 +63,13 @@ function init() {
         'assets/',
         assets,
         () => {
-            scene.background = assets['cubic_env'];
+            backRoom = assets['back_side_room_model'].scene;
+            backRoom.rotation.x = -Math.PI / 2;
+            scene.add(backRoom);
 
             box = assets['box_model'].scene.getObjectByName('Cube');
             box.material = new THREE.MeshLambertMaterial({
                 color: 0x777777,
-                envMap: assets['cubic_env'],
             });
             scene.add(box);
 
